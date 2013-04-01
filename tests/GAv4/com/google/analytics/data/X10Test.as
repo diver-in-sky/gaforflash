@@ -265,6 +265,37 @@ package com.google.analytics.data
             assertEquals( "4(le grand)(654)7(monde)(987)3(bonjour)(321)2(hello)(123)6(world)(789)", xmod1.renderMergedUrlString( xmod2 ) );
             assertEquals( -1, xmod1.renderMergedUrlString( xmod2 ).indexOf( "(the big)" ) );
         }
+
+        public function testClear1():void
+        {
+            xmod1.setKey(2, 1, "hello" );
+            xmod1.clearKey(2);
+
+            assertFalse(xmod1.hasData());
+        }
+
+        public function testClear2():void
+        {
+            xmod1.setKey(2, 1, "hello");
+            xmod1.setKey(2, 2, "test");
+            xmod1.setKey(2, 3, "world");
+            xmod1.clearKey(2);
+
+            assertFalse(xmod1.hasData());
+        }
+
+        public function testClear3():void
+        {
+            xmod1.setKey(2, 1, "hello");
+            xmod1.setKey(2, 2, "test");
+            xmod1.setKey(3, 1, "world");
+            xmod1.clearKey(2);
+
+            assertTrue(xmod1.hasData());
+
+            xmod1.clearKey(3);
+            assertFalse(xmod1.hasData());
+        }
         
     }
 }

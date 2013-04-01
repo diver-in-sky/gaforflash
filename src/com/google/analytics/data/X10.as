@@ -141,10 +141,10 @@ package com.google.analytics.data
             if( _projectData[projectId][type] == undefined )
             {
                 _projectData[projectId][type] = [];
+                _hasData += 1;
             }
             
             _projectData[projectId][type][num] = value;
-            _hasData += 1;
         }
         
         /**
@@ -201,8 +201,8 @@ package com.google.analytics.data
                 if( isEmpty )
                 {
                     _projectData[projectId] = undefined;
-                    _hasData -= 1;
                 }
+                _hasData -= 1;
             }
         }
         
