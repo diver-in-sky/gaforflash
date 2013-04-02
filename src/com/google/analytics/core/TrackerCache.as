@@ -397,6 +397,25 @@ package com.google.analytics.core
         {
         	enqueue("setVar", newVal) ;
         }
+
+        public function setCustomVar(index:int, name:String, value:String, opt_scope:int=3):void
+        {
+            enqueue("setCustomVar", index, name, value, opt_scope);
+        }
+
+        public function deleteCustomVar(index:int):void
+        {
+            enqueue("deleteCustomVar", index);
+        }
+
+        public function getVisitorCustomVar(index:int):String
+        {
+            if ( CACHE_THROW_ERROR )
+            {
+                throw new IllegalOperationError("The tracker is not ready and you can use the 'getVisitorCustomVar' method for the moment.") ;
+            }
+            return "";
+        }
          
         public function trackEvent(category:String, action:String, label:String = null, value:Number = NaN):Boolean
         {

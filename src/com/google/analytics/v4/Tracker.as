@@ -33,6 +33,8 @@ package com.google.analytics.v4
     import com.google.analytics.core.generate32bitRandom;
     import com.google.analytics.core.generateHash;
     import com.google.analytics.core.validateAccount;
+    import com.google.analytics.data.CustomVariable;
+    import com.google.analytics.data.CustomVariables;
     import com.google.analytics.data.X10;
     import com.google.analytics.ecommerce.Transaction;
     import com.google.analytics.external.AdSenseGlobals;
@@ -86,8 +88,8 @@ package com.google.analytics.v4
         private const EVENT_TRACKER_VALUE_VALUE_NUM:int     = 1;
         private var _campaign:CampaignManager;
         private var _eventTracker:X10;
-        private var _x10Module:X10;
         private var _ecom:Ecommerce;
+        private var _customVars:CustomVariables;
         
         /** 
          * Creates a new Tracker instance.
@@ -114,7 +116,9 @@ package com.google.analytics.v4
             _gifRequest = gifRequest;
             _adSense    = adSense;            
             _ecom       = ecom;
-            
+            // custom variables
+            _customVars = new CustomVariables();
+
             if( !validateAccount( account ) )
             {
                 var msg:String = "Account \"" + account + "\" is not valid." ;
@@ -186,12 +190,9 @@ package com.google.analytics.v4
                     }
                 }
                 
-                // Initialize X10 module.
-                _x10Module = new X10();
-                
                 // Initialize event tracker module
                 _eventTracker = new X10();
-                
+
                 _hasInitData = true;
             }
             
@@ -391,7 +392,17 @@ package com.google.analytics.v4
             }
             
             _buffer.utmc.domainHash = _domainHash;
-            
+
+            if (_buffer.hasUTMV() && !_buffer.utmv.isEmpty() && _buffer.utmv.customVars != null) {
+                // get visitor level variables from cookies
+                var variables:Array = _buffer.utmv.customVars.getVariables();
+                for (var i:int; i < variables.length; i++)
+                {
+                    _customVars.setVariable(variables[i]);
+                }
+                LOG::P{ _log.i( "utmv = " + _buffer.utmv.toString() ); }
+            }
+
             LOG::P{ _log.i( "utmb = " + _buffer.utmb.toString() ); }
             LOG::P{ _log.i( "utmc = " + _buffer.utmc.toString() ); }
         }
@@ -766,7 +777,7 @@ package com.google.analytics.v4
                 _initData();
                 
                 _buffer.utmv.domainHash = _domainHash;
-                _buffer.utmv.value      = encodeURI( newVal );
+                _buffer.utmv.varValue      = encodeURI( newVal );
                 LOG::P{ _log.v( "utmv = " + _buffer.utmv.toString() ); }
                 
                 if( _takeSample() )
@@ -782,7 +793,65 @@ package com.google.analytics.v4
             
             LOG::P{ _log.w( "setVar() is ignored" ); }
         }
-        
+
+        /**
+         * Sets a Custom Variable.
+         * Custom variables are name-value pair tags that you can insert in your tracking code. With custom variables,
+         * you can define additional segments to apply to your visitors other than the ones already provided by Analytics.
+         *
+         * @param index The slot for the custom variable. Value can range from 1-5, inclusive. A custom variable should
+         * be placed in one slot only and not be re-used across different slots.
+         * @param name Name for the custom variable. For example: gender
+         * @param value Value for the custom variable. For example: male or female.
+         * @param opt_scope Scope for the custom variable. The scope defines the level of user engagement with site. It
+         * is a number whose possible values are 1 (visitor-level), 2 (session-level), or 3 (page-level). When left
+         * undefined, the custom variable scope defaults to page-level interaction.
+         */
+        public function setCustomVar(index:int, name:String, value:String, opt_scope:int=3):void
+        {
+            LOG::P{ _log.v( "setCustomVar( " + ["" + index, name, value, "" + opt_scope].join(", ") + " )" ); }
+
+            if ((index >= 1) && (index <= 5) && (name != "") && (value != "") && (opt_scope >= 1) && (opt_scope <= 3))
+            {
+                _initData();
+
+                var custVar:CustomVariable = new CustomVariable(index,  name,  value, opt_scope);
+                _customVars.setVariable(custVar);
+                _buffer.utmv.customVars = _customVars;
+
+                return;
+            }
+
+            LOG::P{ _log.v( "setCustomVar() is ignored" ); }
+        }
+
+        /**
+         * This method deletes the variable assigned to the supplied index, if one exists. For example, you might set
+         * a visitor-level custom variable and later decide that you no longer want to use this visitor-level variable.
+         * @param index The slot number for custom variable
+         */
+        public function deleteCustomVar(index:int):void
+        {
+            LOG::P{ _log.v( "deleteCustomVar( " + index + " )" ); }
+
+            _customVars.removeVariable(index);
+            _buffer.utmv.customVars = _customVars;
+        }
+
+        /**
+         * Returns the visitor level (scope=1) custom variable value assigned for the specified index.
+         *
+         * @param index The slot number for custom variable
+         * @return value of custom variable
+         */
+        public function getVisitorCustomVar(index:int):String
+        {
+            LOG::P{ _log.v( "getVisitorCustomVar( " + index + " )" ); }
+
+            return _customVars.getVisitorCustomVar(index);
+        }
+
+
         /**
          * Main logic for GATC (Google Analytic Tracker Code).
          * If linker functionalities are enabled, it attempts to extract cookie values from the URL.
@@ -864,10 +933,11 @@ package com.google.analytics.v4
                 
                 var x10vars:Variables;
                 
-                //X10
-                if( _x10Module && _x10Module.hasData() )
+                //custom variables
+                const x10customVars:X10 = _customVars.getX10();
+                if( x10customVars && x10customVars.hasData() )
                 {
-                    var eventInfo:EventInfo = new EventInfo( false, _x10Module );
+                    var eventInfo:EventInfo = new EventInfo( false, x10customVars);
                     x10vars = eventInfo.toVariables();
                 }
                 
@@ -877,6 +947,7 @@ package com.google.analytics.v4
                 searchVariables.join( x10vars, generalvars );
                 
                 _gifRequest.send( _account, searchVariables );
+                _customVars.removePageVariables();
             }
         }
         
@@ -1422,7 +1493,7 @@ package com.google.analytics.v4
                 var searchVariables:Variables = new Variables();
                     searchVariables.URIencode = true;
                 
-                var eventInfo:EventInfo = new EventInfo( true, _x10Module, opt_xObj );
+                var eventInfo:EventInfo = new EventInfo( true, _customVars.getX10(), opt_xObj );
                 
                 var eventvars:Variables   = eventInfo.toVariables();
                 var generalvars:Variables = _renderMetricsSearchVariables();

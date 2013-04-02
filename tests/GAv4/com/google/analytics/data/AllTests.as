@@ -36,6 +36,7 @@ package com.google.analytics.data
             suite.addTestSuite( X10Test );
             suite.addTestSuite( UTMCookieTest );
             suite.addTestSuite( UTMATest );
+            suite.addTestSuite( CustomVariablesTest );
             
             return suite;
         }

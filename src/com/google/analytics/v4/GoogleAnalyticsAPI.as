@@ -88,6 +88,7 @@ package com.google.analytics.v4
         function setSessionTimeout( newTimeout:int ):void;
         
         /**
+         * This function is deprecated use setCustomVar instead.
          * Sets a user-defined value.
          * The value you supply appears as an option in the Segment pull-down for the Traffic Sources reports.
          * You can use this value to provide additional segmentation on users to your website.
@@ -99,7 +100,37 @@ package com.google.analytics.v4
          * @param newVal New user defined value to set.
          */
         function setVar(newVal:String):void;
-        
+
+        /**
+         * Sets a Custom Variable.
+         * Custom variables are name-value pair tags that you can insert in your tracking code. With custom variables,
+         * you can define additional segments to apply to your visitors other than the ones already provided by Analytics.
+         *
+         * @param index The slot for the custom variable. Value can range from 1-5, inclusive. A custom variable should
+         * be placed in one slot only and not be re-used across different slots.
+         * @param name Name for the custom variable. For example: gender
+         * @param value Value for the custom variable. For example: male or female.
+         * @param opt_scope Scope for the custom variable. The scope defines the level of user engagement with site. It
+         * is a number whose possible values are 1 (visitor-level), 2 (session-level), or 3 (page-level). When left
+         * undefined, the custom variable scope defaults to page-level interaction.
+         */
+        function setCustomVar(index:int, name:String, value:String, opt_scope:int=3):void;
+
+        /**
+         * This method deletes the variable assigned to the supplied index, if one exists. For example, you might set
+         * a visitor-level custom variable and later decide that you no longer want to use this visitor-level variable.
+         * @param index The slot number for custom variable
+         */
+        function deleteCustomVar(index:int):void;
+
+        /**
+         * Returns the visitor level (scope=1) custom variable value assigned for the specified index.
+         *
+         * @param index The slot number for custom variable
+         * @return value of custom variable
+         */
+        function getVisitorCustomVar(index:int):String;
+
         /**
          * Main logic for GATC (Google Analytic Tracker Code).
          * If linker functionalities are enabled, it attempts to extract cookie values from the URL.
