@@ -260,7 +260,7 @@ package com.google.analytics.core
          */
         public function match( name:String ):Boolean
         {
-            if( name == "" )
+            if( !name )
             {
                 return false;
             }
